@@ -27,6 +27,7 @@ namespace google_drive_sample
                                       DriveService.Scope.DriveFile, 
                                       DriveService.Scope.DriveMetadata 
                                   };
+        private const string ApplicationName = "google-drive-sample";
 
         private UserCredential _userCredential;
         private DriveService _driveService;
@@ -35,13 +36,17 @@ namespace google_drive_sample
         {
             InitializeComponent();
             GetAuth();
-            //GetFile();
-            GetChildren();
+            //GetFile("Untitled");
+            List<Google.Apis.Drive.v2.Data.File> a = GetChildren("source");
+            foreach (Google.Apis.Drive.v2.Data.File test in a)
+            {
+                richTextBox1.AppendText(test.Title + "\n");
+            }
         }
 
         public void GetAuth()
         {
-            using (var stream = new FileStream("../../google_secret.json", System.IO.FileMode.Open, System.IO.FileAccess.Read))
+            using (var stream = new FileStream("../../credentials/google_secret.json", System.IO.FileMode.Open, System.IO.FileAccess.Read))
             {
                 var credentials = GoogleWebAuthorizationBroker.AuthorizeAsync(
                         GoogleClientSecrets.Load(stream).Secrets,
@@ -61,45 +66,65 @@ namespace google_drive_sample
             }
         }
 
-        public void GetFile()
+        public void GetFile(string file_name)
         {
             FilesResource.ListRequest req = _driveService.Files.List();
 
             do {
-                req.Q = "title='Untitled'";
-                FileList qq = req.Execute();
-                foreach (Google.Apis.Drive.v2.Data.File a in qq.Items)
+                req.Q = "title='" + file_name + "'";
+                FileList file_search = req.Execute();
+                foreach (Google.Apis.Drive.v2.Data.File a in file_search.Items)
                 {
                     MessageBox.Show(a.Id);
                 }
             }while(!String.IsNullOrEmpty(req.PageToken));
-            ChildrenResource.ListRequest rr = _driveService.Children.List("");
-            FilesResource.InsertRequest ins = _driveService.Files.Insert(
-                new Google.Apis.Drive.v2.Data.File()
-                
-
-                );
-            
-            ins.Execute();
-            FileList list = req.Execute();
-            ChildList ss = rr.Execute();
-            IList<Google.Apis.Drive.v2.Data.File> data = list.Items;
-            
         }
-
-        public void GetChildren()
+        
+        public List<Google.Apis.Drive.v2.Data.File> GetChildren(string dir_name)
         {
-            FilesResource.ListRequest req2 = _driveService.Files.List();
-            req2.Q = "title='source'";
-            FileList rr = req2.Execute();
-            ChildrenResource.ListRequest req = _driveService.Children.List(rr.Items[0].Id);
-            ChildList ch = req.Execute();
+            List<Google.Apis.Drive.v2.Data.File> result = new List<Google.Apis.Drive.v2.Data.File>();
+
+            FilesResource.ListRequest req = _driveService.Files.List();
+            req.Q = "title='" + dir_name + "'";
+            FileList children_list = req.Execute();
+            ChildrenResource.ListRequest child_req = _driveService.Children.List(children_list.Items[0].Id);
+            ChildList ch = child_req.Execute();
+
             foreach (ChildReference a in ch.Items)
             {
-                FilesResource.GetRequest getitem = _driveService.Files.Get(a.Id);
-                Google.Apis.Drive.v2.Data.File asa = getitem.Execute();
-                MessageBox.Show(asa.Title);
+                FilesResource.GetRequest get_file = _driveService.Files.Get(a.Id);
+                Google.Apis.Drive.v2.Data.File file_obj = get_file.Execute();
+                result.Add(file_obj);
             }
+
+            return result;
+        }
+
+        public List<Google.Apis.Drive.v2.Data.File> GetRoot()
+        {
+            List<Google.Apis.Drive.v2.Data.File> result = new List<Google.Apis.Drive.v2.Data.File>();
+
+            ChildrenResource.ListRequest child_req = _driveService.Children.List("root");
+            ChildList ch = child_req.Execute();
+
+            foreach (ChildReference a in ch.Items)
+            {
+                FilesResource.GetRequest get_file = _driveService.Files.Get(a.Id);
+                Google.Apis.Drive.v2.Data.File file_obj = get_file.Execute();
+                result.Add(file_obj);
+            }
+
+            return result;
+        }
+
+        public bool IsDirectory(Google.Apis.Drive.v2.Data.File file)
+        {
+            if (!file.Copyable.HasValue)
+            {
+                return false;
+            }
+
+            return (!file.Copyable.Value && file.MimeType == "application/vnd.google-apps.folder");
         }
     }
 }
