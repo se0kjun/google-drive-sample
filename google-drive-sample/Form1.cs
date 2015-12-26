@@ -15,7 +15,6 @@ using Google.Apis.Drive.v2.Data;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace google_drive_sample
 {
@@ -98,6 +97,17 @@ namespace google_drive_sample
             }
 
             return result;
+        }
+
+        public List<Google.Apis.Drive.v2.Data.File> GetAbsolutePathChildren(string path)
+        {
+            string[] path_list = path.Split('/');
+
+            for (int i = 0; i < path_list.Length; i++)
+            {
+
+            }
+            return null;
         }
 
         public List<Google.Apis.Drive.v2.Data.File> GetRoot()
