@@ -36,7 +36,8 @@ namespace google_drive_sample
             InitializeComponent();
             GetAuth();
             GetFile("Untitled");
-            GetIdByPath("/source/JAVA/BookClient");
+            string id = GetIdByPath("/source/JAVA/BookClient/BookClient.iml");
+            richTextBox1.AppendText(id);
             //List<Google.Apis.Drive.v2.Data.File> a = GetChildren("source");
             //foreach (Google.Apis.Drive.v2.Data.File test in a)
             //{
@@ -73,9 +74,11 @@ namespace google_drive_sample
             Google.Apis.Drive.v2.Data.File parent_file = parent_req.Execute();
 
             if (parent[0].IsRoot.Value)
-                return null;
+                return parent[0].Id;
             if (parent_file.Title == path_list[idx] && !parent[0].IsRoot.Value)
-                GetRecursiveParent(path, parent_file.Parents, idx+1);
+                return GetRecursiveParent(path, parent_file.Parents, idx - 1);
+            else
+                return null;
         }
 
         public string GetIdByPath(string path)
@@ -97,23 +100,15 @@ namespace google_drive_sample
             }
             else
             {
-                int last_idx = path_list.Length - 1;
+                int last_idx = path_list.Length - 2;
                 Google.Apis.Drive.v2.Data.File ret = new Google.Apis.Drive.v2.Data.File();
                 foreach (Google.Apis.Drive.v2.Data.File f in file_search_list)
                 {
-                    //for (int i = last_idx; i == 0; )
-                    //{
-                    //    IList<ParentReference> parents = f.Parents;
-                    //    foreach (ParentReference parent in parents)
-                    //    {
-                    //        FilesResource.GetRequest parent_req = _driveService.Files.Get(parent.Id);
-                    //        Google.Apis.Drive.v2.Data.File parent_file = parent_req.Execute();
-                    //        if (parent_file.Title == path_list[i])
-                    //        {
-                    //            break;
-                    //        }
-                    //    }
-                    //}
+                    if (GetRecursiveParent(path, f.Parents, last_idx) != null)
+                    {
+                        ret = f;
+                        break;
+                    }
                 }
                 
                 return ret.Id;
