@@ -149,17 +149,6 @@ namespace google_drive_sample
             return result;
         }
 
-        public List<Google.Apis.Drive.v2.Data.File> GetAbsolutePathChildren(string path)
-        {
-            string[] path_list = path.Split('/');
-
-            for (int i = 0; i < path_list.Length; i++)
-            {
-
-            }
-            return null;
-        }
-
         public List<Google.Apis.Drive.v2.Data.File> GetRoot()
         {
             List<Google.Apis.Drive.v2.Data.File> result = new List<Google.Apis.Drive.v2.Data.File>();
