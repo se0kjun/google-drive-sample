@@ -35,12 +35,13 @@ namespace google_drive_sample
         {
             InitializeComponent();
             GetAuth();
-            //GetFile("Untitled");
-            List<Google.Apis.Drive.v2.Data.File> a = GetChildren("source");
-            foreach (Google.Apis.Drive.v2.Data.File test in a)
-            {
-                richTextBox1.AppendText(test.Title + "\n");
-            }
+            GetFile("Untitled");
+            GetIdByPath("/source/JAVA/BookClient");
+            //List<Google.Apis.Drive.v2.Data.File> a = GetChildren("source");
+            //foreach (Google.Apis.Drive.v2.Data.File test in a)
+            //{
+            //    richTextBox1.AppendText(test.Title + "\n");
+            //}
         }
 
         public void GetAuth()
@@ -62,6 +63,60 @@ namespace google_drive_sample
                     HttpClientInitializer = _userCredential,
                     ApplicationName = ApplicationName,
                 });
+            }
+        }
+
+        public string GetRecursiveParent(string path, IList<ParentReference> parent, int idx)
+        {
+            string[] path_list = path.Split('/');
+            FilesResource.GetRequest parent_req = _driveService.Files.Get(parent[0].Id);
+            Google.Apis.Drive.v2.Data.File parent_file = parent_req.Execute();
+
+            if (parent[0].IsRoot.Value)
+                return null;
+            if (parent_file.Title == path_list[idx] && !parent[0].IsRoot.Value)
+                GetRecursiveParent(path, parent_file.Parents, idx+1);
+        }
+
+        public string GetIdByPath(string path)
+        {
+            string[] path_list = path.Split('/');
+            List<Google.Apis.Drive.v2.Data.File> file_search_list = new List<Google.Apis.Drive.v2.Data.File>();
+
+            FilesResource.ListRequest req = _driveService.Files.List();
+            do
+            {
+                req.Q = "title='" + path_list.Last<string>() + "'";
+                FileList file_search = req.Execute();
+                file_search_list.AddRange(file_search.Items);
+            } while (!String.IsNullOrEmpty(req.PageToken));
+
+            if (file_search_list.Count == 1)
+            {
+                return file_search_list.First<Google.Apis.Drive.v2.Data.File>().Id;
+            }
+            else
+            {
+                int last_idx = path_list.Length - 1;
+                Google.Apis.Drive.v2.Data.File ret = new Google.Apis.Drive.v2.Data.File();
+                foreach (Google.Apis.Drive.v2.Data.File f in file_search_list)
+                {
+                    //for (int i = last_idx; i == 0; )
+                    //{
+                    //    IList<ParentReference> parents = f.Parents;
+                    //    foreach (ParentReference parent in parents)
+                    //    {
+                    //        FilesResource.GetRequest parent_req = _driveService.Files.Get(parent.Id);
+                    //        Google.Apis.Drive.v2.Data.File parent_file = parent_req.Execute();
+                    //        if (parent_file.Title == path_list[i])
+                    //        {
+                    //            break;
+                    //        }
+                    //    }
+                    //}
+                }
+                
+                return ret.Id;
             }
         }
 
