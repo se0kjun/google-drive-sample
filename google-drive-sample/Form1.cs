@@ -7,173 +7,72 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.IO;
 
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Drive.v2;
 using Google.Apis.Drive.v2.Data;
-using Google.Apis.Services;
-using Google.Apis.Util.Store;
-using System.Threading;
 
 namespace google_drive_sample
 {
     public partial class Form1 : Form
     {
-        private const string CredentialPath = "../credentials";
-        private string[] Scopes = { 
-                                      DriveService.Scope.Drive, 
-                                      DriveService.Scope.DriveFile, 
-                                      DriveService.Scope.DriveMetadata 
-                                  };
-        private const string ApplicationName = "google-drive-sample";
-
-        private UserCredential _userCredential;
-        private DriveService _driveService;
+        public GoogleDriveHelper gdrive_helper;
+        public string current_file_path;
 
         public Form1()
         {
             InitializeComponent();
-            GetAuth();
-            GetFile("Untitled");
-            string id = GetIdByPath("/source/JAVA/BookClient/BookClient.iml");
-            richTextBox1.AppendText(id);
-            //List<Google.Apis.Drive.v2.Data.File> a = GetChildren("source");
-            //foreach (Google.Apis.Drive.v2.Data.File test in a)
-            //{
-            //    richTextBox1.AppendText(test.Title + "\n");
-            //}
+            init();
+            listView1.MouseDoubleClick += listView1_MouseDoubleClick;
         }
 
-        public void GetAuth()
+        void listView1_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-            using (var stream = new FileStream("../../credentials/google_secret.json", System.IO.FileMode.Open, System.IO.FileAccess.Read))
+            var selected_item = listView1.SelectedItems[0];
+
+            if (selected_item.SubItems[1].Text == "Directory")
             {
-                var credentials = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                        GoogleClientSecrets.Load(stream).Secrets,
-                        Scopes,
-                        "user",
-                        CancellationToken.None,
-                        new FileDataStore(CredentialPath, true));
-                _userCredential = credentials.Result;
-                if (credentials.IsCanceled || credentials.IsFaulted)
-                    throw new Exception("cannot connect");
-
-                _driveService = new DriveService(new BaseClientService.Initializer()
-                {
-                    HttpClientInitializer = _userCredential,
-                    ApplicationName = ApplicationName,
-                });
-            }
-        }
-
-        public string GetRecursiveParent(string path, IList<ParentReference> parent, int idx)
-        {
-            string[] path_list = path.Split('/');
-            FilesResource.GetRequest parent_req = _driveService.Files.Get(parent[0].Id);
-            Google.Apis.Drive.v2.Data.File parent_file = parent_req.Execute();
-
-            if (parent[0].IsRoot.Value)
-                return parent[0].Id;
-            if (parent_file.Title == path_list[idx] && !parent[0].IsRoot.Value)
-                return GetRecursiveParent(path, parent_file.Parents, idx - 1);
-            else
-                return null;
-        }
-
-        public string GetIdByPath(string path)
-        {
-            string[] path_list = path.Split('/');
-            List<Google.Apis.Drive.v2.Data.File> file_search_list = new List<Google.Apis.Drive.v2.Data.File>();
-
-            FilesResource.ListRequest req = _driveService.Files.List();
-            do
-            {
-                req.Q = "title='" + path_list.Last<string>() + "'";
-                FileList file_search = req.Execute();
-                file_search_list.AddRange(file_search.Items);
-            } while (!String.IsNullOrEmpty(req.PageToken));
-
-            if (file_search_list.Count == 1)
-            {
-                return file_search_list.First<Google.Apis.Drive.v2.Data.File>().Id;
+                listView1.Items.Clear();
+                current_file_path += ("/" + selected_item.Text);
+                string id = gdrive_helper.GetIdByPath(current_file_path);
+                render(gdrive_helper.GetChildrenById(id));
             }
             else
-            {
-                int last_idx = path_list.Length - 2;
-                Google.Apis.Drive.v2.Data.File ret = new Google.Apis.Drive.v2.Data.File();
-                foreach (Google.Apis.Drive.v2.Data.File f in file_search_list)
-                {
-                    if (GetRecursiveParent(path, f.Parents, last_idx) != null)
-                    {
-                        ret = f;
-                        break;
-                    }
-                }
-                
-                return ret.Id;
-            }
+                MessageBox.Show(gdrive_helper.GetIdByPath(current_file_path + "/" + selected_item.Text));
         }
 
-        public void GetFile(string file_name)
+        private void init()
         {
-            FilesResource.ListRequest req = _driveService.Files.List();
-
-            do {
-                req.Q = "title='" + file_name + "'";
-                FileList file_search = req.Execute();
-                foreach (Google.Apis.Drive.v2.Data.File a in file_search.Items)
-                {
-                    MessageBox.Show(a.Id);
-                }
-            }while(!String.IsNullOrEmpty(req.PageToken));
-        }
-        
-        public List<Google.Apis.Drive.v2.Data.File> GetChildren(string dir_name)
-        {
-            List<Google.Apis.Drive.v2.Data.File> result = new List<Google.Apis.Drive.v2.Data.File>();
-
-            FilesResource.ListRequest req = _driveService.Files.List();
-            req.Q = "title='" + dir_name + "'";
-            FileList children_list = req.Execute();
-            ChildrenResource.ListRequest child_req = _driveService.Children.List(children_list.Items[0].Id);
-            ChildList ch = child_req.Execute();
-
-            foreach (ChildReference a in ch.Items)
-            {
-                FilesResource.GetRequest get_file = _driveService.Files.Get(a.Id);
-                Google.Apis.Drive.v2.Data.File file_obj = get_file.Execute();
-                result.Add(file_obj);
-            }
-
-            return result;
+            current_file_path = "";
+            gdrive_helper = new GoogleDriveHelper();
+            List<File> root_file = gdrive_helper.GetRoot();
+            render(root_file);
         }
 
-        public List<Google.Apis.Drive.v2.Data.File> GetRoot()
+        private void render(List<File> file_list)
         {
-            List<Google.Apis.Drive.v2.Data.File> result = new List<Google.Apis.Drive.v2.Data.File>();
-
-            ChildrenResource.ListRequest child_req = _driveService.Children.List("root");
-            ChildList ch = child_req.Execute();
-
-            foreach (ChildReference a in ch.Items)
+            listView1.BeginUpdate();
+            foreach (File f in file_list)
             {
-                FilesResource.GetRequest get_file = _driveService.Files.Get(a.Id);
-                Google.Apis.Drive.v2.Data.File file_obj = get_file.Execute();
-                result.Add(file_obj);
+                ListViewItem item = new ListViewItem(f.Title, 0);
+                if (gdrive_helper.IsDirectory(f))
+                    item.SubItems.Add("Directory");
+                else
+                    item.SubItems.Add("File");
+                item.SubItems.Add(f.CreatedDate.Value.ToString());
+                listView1.Items.Add(item);
             }
-
-            return result;
+            listView1.EndUpdate();
         }
 
-        public bool IsDirectory(Google.Apis.Drive.v2.Data.File file)
+        private void button1_Click(object sender, EventArgs e)
         {
-            if (!file.Copyable.HasValue)
+            int last = current_file_path.LastIndexOf('/');
+            if (last >= 0)
             {
-                return false;
+                current_file_path = current_file_path.Substring(0, last);
+                listView1.Items.Clear();
+                string id = gdrive_helper.GetIdByPath(current_file_path);
+                render(gdrive_helper.GetChildrenById(id));
             }
-
-            return (!file.Copyable.Value && file.MimeType == "application/vnd.google-apps.folder");
         }
     }
 }
