@@ -36,7 +36,12 @@ namespace google_drive_sample
                 render(gdrive_helper.GetChildrenById(id));
             }
             else
-                MessageBox.Show(gdrive_helper.GetIdByPath(current_file_path + "/" + selected_item.Text));
+            {
+                byte[] buf = new byte[256];
+                string id = gdrive_helper.GetIdByPath(current_file_path + "/" + selected_item.Text);
+                MessageBox.Show(id);
+            }
+                
         }
 
         private void init()
@@ -73,6 +78,18 @@ namespace google_drive_sample
                 string id = gdrive_helper.GetIdByPath(current_file_path);
                 render(gdrive_helper.GetChildrenById(id));
             }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            gdrive_helper.CreateDirectory(current_file_path, textBox1.Text);
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            listView1.Items.Clear();
+            string id = gdrive_helper.GetIdByPath(current_file_path);
+            render(gdrive_helper.GetChildrenById(id));
         }
     }
 }
