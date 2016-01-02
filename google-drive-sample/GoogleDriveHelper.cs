@@ -25,13 +25,50 @@ namespace google_drive_sample
         private const string ApplicationName = "google-drive-sample";
 
         private UserCredential _userCredential;
-        private DriveService _driveService;
+        public DriveService _driveService;
 
         public GoogleDriveHelper()
         {
             GetAuth();
         }
 
+        public Google.Apis.Drive.v2.Data.File GetFileById(string id)
+        {
+            if (id != null)
+            {
+                FilesResource.GetRequest file = _driveService.Files.Get(id);
+                return file.Execute();
+            }
+            else return new Google.Apis.Drive.v2.Data.File();
+        }
+
+        public Google.Apis.Drive.v2.Data.File CreateDirectory(string parent_path, string file_name)
+        {
+            Google.Apis.Drive.v2.Data.File body = new Google.Apis.Drive.v2.Data.File();
+            body.Title = file_name;
+            body.MimeType = "application/vnd.google-apps.folder";
+            body.Parents = new List<ParentReference>() 
+            {
+                new ParentReference() { Id = GetIdByPath(parent_path) } 
+            };
+
+            return _driveService.Files.Insert(body).Execute();
+        }
+        public Google.Apis.Drive.v2.Data.File CreateDirectory(string path)
+        {
+            string file_name = path.Substring(path.LastIndexOf('/'), path.Length);
+            string parent_path = path.Substring(0, path.LastIndexOf('/'));
+
+            Google.Apis.Drive.v2.Data.File body = new Google.Apis.Drive.v2.Data.File();
+            body.Title = file_name;
+            body.MimeType = "application/vnd.google-apps.folder";
+            body.Parents = new List<ParentReference>() 
+            {
+                new ParentReference() { Id = GetIdByPath(parent_path) } 
+            };
+
+            return _driveService.Files.Insert(body).Execute();
+        }
         public void GetAuth()
         {
             using (var stream = new FileStream("../../credentials/google_secret.json", System.IO.FileMode.Open, System.IO.FileAccess.Read))
