@@ -18,6 +18,12 @@ After download JSON file
 2. create `credentials` directory under the `google-drive-sample`
 3. move `google_secret.json` to `google-drive-sample/credentials`
 
+##Features
+
+- [Create a folder in a particular folder](https://github.com/se0kjun/google-drive-sample/blob/master/google-drive-sample/GoogleDriveHelper.cs#L45)
+- [Get a id of particular file using path (unix type)](https://github.com/se0kjun/google-drive-sample/blob/master/google-drive-sample/GoogleDriveHelper.cs#L108)
+- [Get a files in a particular folder](https://github.com/se0kjun/google-drive-sample/blob/master/google-drive-sample/GoogleDriveHelper.cs#L160)
+
 ##Description
 
 This sample is the File Explorer for Google Drive. 
