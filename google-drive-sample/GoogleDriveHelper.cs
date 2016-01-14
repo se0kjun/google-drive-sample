@@ -181,15 +181,12 @@ namespace google_drive_sample
         {
             List<Google.Apis.Drive.v2.Data.File> result = new List<Google.Apis.Drive.v2.Data.File>();
 
-            ChildrenResource.ListRequest child_req = _driveService.Children.List(id);
-            ChildList ch = child_req.Execute();
+            FilesResource.ListRequest req = _driveService.Files.List();
+            req.Q = "trashed=false";
+            req.Q += string.Format(" and '{0}' in parents", id);
 
-            foreach (ChildReference a in ch.Items)
-            {
-                FilesResource.GetRequest get_file = _driveService.Files.Get(a.Id);
-                Google.Apis.Drive.v2.Data.File file_obj = get_file.Execute();
-                result.Add(file_obj);
-            }
+            FileList files = req.Execute();
+            result = files.Items.ToList<Google.Apis.Drive.v2.Data.File>();
 
             return result;
         }
